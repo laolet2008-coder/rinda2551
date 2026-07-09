@@ -7,33 +7,85 @@
 #include "addons/RTDBHelper.h"
 
 // ==========================================
-// 1. ตั้งค่า Wi-Fi (ระบุข้อมูลของคุณตรงนี้)
+// 1. ตั้งค่า Wi-Fi (ข้อมูลเดิมของคุณ)
 // ==========================================
 #define WIFI_SSID "Porn"
 #define WIFI_PASSWORD "1234567899"
 
 // ==========================================
-// 2. ข้อมูล Firebase จากโปรเจกต์ของคุณ (ใส่ให้เรียบร้อยแล้ว)
+// 2. ข้อมูล Firebase (ข้อมูลเดิมของคุณ)
 // ==========================================
 #define API_KEY "AIzaSyCTGTfRQAqBdUzxN13YME0Zig_ifCZZuFs"
 #define DATABASE_URL "https://yout2026-default-rtdb.asia-southeast1.firebasedatabase.app"
 
+// ==========================================
+// 3. กำหนดขา GPIO สำหรับ Relay 4 แชนแนล
+// ==========================================
+const int RELAY_D1 = 5;  // CH1: Light 1 (GPIO5)
+const int RELAY_D2 = 4;  // CH2: Fan (GPIO4)
+const int RELAY_D5 = 14; // CH3: TV (GPIO14)
+const int RELAY_D6 = 12; // CH4: Plug (GPIO12)
+
 // ประกาศออบเจ็กต์สำหรับ Firebase
-FirebaseData fbdo;
+FirebaseData fbdoStream; // ออบเจ็กต์เฉพาะสำหรับเปิด Stream ดักจับข้อมูล
 FirebaseAuth auth;
 FirebaseConfig config;
 
+// ฟังก์ชันเปิดระบบดักจับข้อมูลแบบ Real-time Stream
+void streamCallback(FirebaseStreamData data) {
+  String path = data.dataPath();
+  
+  // ตรวจสอบว่าเป็นข้อมูลชนิด JSON หรือค่าเดี่ยวๆ
+  if (data.dataType() == "json") {
+    FirebaseJson &json = data.jsonObject();
+    FirebaseJsonData jsonData;
+    
+    // อัปเดตสถานะขารีเลย์จากข้อมูลก้อนแรกที่ดึงมา
+    json.get(jsonData, "D1"); if (jsonData.success) digitalWrite(RELAY_D1, jsonData.intValue == 1 ? LOW : HIGH);
+    json.get(jsonData, "D2"); if (jsonData.success) digitalWrite(RELAY_D2, jsonData.intValue == 1 ? LOW : HIGH);
+    json.get(jsonData, "D5"); if (jsonData.success) digitalWrite(RELAY_D5, jsonData.intValue == 1 ? LOW : HIGH);
+    json.get(jsonData, "D6"); if (jsonData.success) digitalWrite(RELAY_D6, jsonData.intValue == 1 ? LOW : HIGH);
+    Serial.println("[Firebase] ซิงค์โครงสร้างข้อมูลเริ่มต้นสำเร็จ");
+  } 
+  else {
+    // กรณีมีการเปลี่ยนค่าเฉพาะบางแชนแนลจากหน้าเว็บ
+    int value = data.intData();
+    // ตรรกะ Active-LOW: ค่า 1 (ON) สั่ง LOW เพื่อให้รีเลย์ทำงาน / ค่า 0 (OFF) สั่ง HIGH เพื่อให้รีเลย์ดับ
+    int relayState = (value == 1) ? LOW : HIGH; 
+    
+    if (path == "/D1") { digitalWrite(RELAY_D1, relayState); Serial.printf("[Control] CH1 (D1) -> %s\n", value == 1 ? "ON" : "OFF"); }
+    else if (path == "/D2") { digitalWrite(RELAY_D2, relayState); Serial.printf("[Control] CH2 (D2) -> %s\n", value == 1 ? "ON" : "OFF"); }
+    else if (path == "/D5") { digitalWrite(RELAY_D5, relayState); Serial.printf("[Control] CH3 (D5) -> %s\n", value == 1 ? "ON" : "OFF"); }
+    else if (path == "/D6") { digitalWrite(RELAY_D6, relayState); Serial.printf("[Control] CH4 (D6) -> %s\n", value == 1 ? "ON" : "OFF"); }
+  }
+}
+
+void streamTimeoutCallback(bool timeout) {
+  if (timeout) {
+    Serial.println("[Stream] การเชื่อมต่อหมดเวลา กำลังเชื่อมต่อใหม่...");
+  }
+}
+
 void setup() {
-  // เปิด Serial Monitor ที่ Baud Rate 115200
   Serial.begin(115200);
   delay(1000);
   
   Serial.println("\n\n========================================");
-  Serial.println("  IoT Smart Home - SYSTEM DIAGNOSTIC   ");
+  Serial.println("   IoT Smart Home - SYSTEM STARTUP      ");
   Serial.println("========================================");
 
   // ----------------------------------------
-  // ข้อที่ 1: ตรวจสอบระบบ Wi-Fi
+  // ตั้งค่าโหมดของขาเอาต์พุต (Active-LOW Protection)
+  // ----------------------------------------
+  // สั่งให้ขารีเลย์ทุกขาเป็น HIGH ทันทีตั้งแต่เริ่มต้นระบบ เพื่อป้องกันรีเลย์กระพริบตอนเปิดบอร์ดหรือไฟตก
+  pinMode(RELAY_D1, OUTPUT); digitalWrite(RELAY_D1, HIGH);
+  pinMode(RELAY_D2, OUTPUT); digitalWrite(RELAY_D2, HIGH);
+  pinMode(RELAY_D5, OUTPUT); digitalWrite(RELAY_D5, HIGH);
+  pinMode(RELAY_D6, OUTPUT); digitalWrite(RELAY_D6, HIGH);
+  Serial.println("[Hardware] ขาควบคุมรีเลย์เริ่มต้นทำงาน (สถานะเริ่มต้น: ปิด)");
+
+  // ----------------------------------------
+  // เชื่อมต่อ Wi-Fi
   // ----------------------------------------
   Serial.print("[Wi-Fi] กำลังเชื่อมต่อกับ: ");
   Serial.println(WIFI_SSID);
@@ -45,15 +97,15 @@ void setup() {
   }
   
   Serial.println("\n[Wi-Fi] เชื่อมต่อสำเร็จ!");
-  Serial.print("[Wi-Fi] IP Address ที่ได้รับ: ");
+  Serial.print("[Wi-Fi] IP Address: ");
   Serial.println(WiFi.localIP());
   Serial.println("----------------------------------------");
 
   // ----------------------------------------
-  // ระบบซิงค์เวลา NTP (จำเป็นมากสำหรับ SSL ของ Firebase)
+  // ซิงค์เวลาสากล NTP (จำเป็นสำหรับ SSL ความปลอดภัยสูง)
   // ----------------------------------------
-  Serial.print("[NTP] กำลังซิงค์เวลาสากลผ่านอินเทอร์เน็ต");
-  configTime(7 * 3600, 0, "pool.ntp.org", "time.nist.gov"); // เวลาประเทศไทย UTC+7
+  Serial.print("[NTP] กำลังซิงค์เวลาสากล (UTC+7)");
+  configTime(7 * 3600, 0, "pool.ntp.org", "time.nist.gov");
   while (time(nullptr) < 100000) {
     Serial.print(".");
     delay(500);
@@ -62,52 +114,32 @@ void setup() {
   Serial.println("----------------------------------------");
 
   // ----------------------------------------
-  // ข้อที่ 2: เริ่มต้นระบบ Firebase
+  // เริ่มต้นระบบ Firebase
   // ----------------------------------------
   Serial.println("[Firebase] กำลังตั้งค่าการเชื่อมต่อ...");
   config.api_key = API_KEY;
   config.database_url = DATABASE_URL;
 
-  // เชื่อมต่อแบบไม่ระบุตัวตน (Anonymous Sign-In)
+  // ลงทะเบียนแบบไม่ระบุตัวตน (Anonymous)
   if (Firebase.signUp(&config, &auth, "", "")) {
-    Serial.println("[Firebase] ยืนยันตัวตน (Authentication) สำเร็จ!");
+    Serial.println("[Firebase] ยืนยันตัวตนสำเร็จ!");
   } else {
     Serial.printf("[Firebase] ยืนยันตัวตนล้มเหลว: %s\n", config.signer.signupError.message.c_str());
   }
 
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
+
+  // เริ่มต้นเปิดระบบ Real-time Stream ดักจับที่โหนด "/SmartHome"
+  if (!Firebase.RTDB.beginStream(&fbdoStream, "/SmartHome")) {
+    Serial.printf("[Stream] เปิดระบบผิดพลาด: %s\n", fbdoStream.errorReason().c_str());
+  } else {
+    Serial.println("[Stream] ระบบ Real-time ดักจับข้อมูลเปิดใช้งานแล้ว!");
+    Firebase.RTDB.setStreamCallback(&fbdoStream, streamCallback, streamTimeoutCallback);
+  }
   Serial.println("========================================\n");
 }
 
 void loop() {
-  // ตรวจสอบว่าบอร์ดพร้อม และ Firebase เชื่อมต่อได้หรือไม่
-  if (Firebase.ready()) {
-    
-    // กำหนดพิกัดที่ต้องการตรวจสอบ (ในที่นี้เริ่มจากพิกัดราก "/" เพื่อดูโครงสร้างทั้งหมด)
-    String targetPath = "/"; 
-    
-    Serial.print("[Firebase] กำลังทดสอบอ่านข้อมูลจากพิกัด: ");
-    Serial.println(targetPath);
-
-    // ทดลองดึงข้อมูลในรูปแบบ JSON มาแสดงผล
-    if (Firebase.RTDB.getJSON(&fbdo, targetPath)) {
-      Serial.println("[Firebase] ดึงค่าสำเร็จ! ข้อมูลในพิกัดนี้คือ:");
-      // แสดงโครงสร้างข้อมูลทั้งหมดที่ดึงมาได้
-      Serial.println(fbdo.jsonString()); 
-    } else {
-      // หากดึงไม่สำเร็จ จะพิมพ์แจ้งสาเหตุความล้มเหลวออกมา
-      Serial.print("[Firebase] ดึงข้อมูลล้มเหลว! สาเหตุ: ");
-      Serial.println(fbdo.errorReason());
-    }
-
-    Serial.println("----------------------------------------");
-  } else {
-    Serial.println("[System] บอร์ดยังไม่พร้อม หรืออยู่ระหว่างการเชื่อมต่อ Firebase...");
-  }
-
-  // หน่วงเวลาตรวจสอบทุกๆ 5 วินาที เพื่อไม่ให้ Serial Monitor ทำงานเร็วเกินไป
-  delay(5000);
+  // ปล่อยให้ลูปว่างไว้สำหรับให้ระบบหลังบ้านของ Firebase Stream ทำงานประสานงานกับเบราว์เซอร์อย่างอิสระ
 }
-yout2026-default-rtdb.asia-southeast1.firebasedatabase.app
-yout2026-default-rtdb.asia-southeast1.firebasedatabase.app
