@@ -9,7 +9,7 @@
     <style>
         /* --- การตกแต่งพื้นหลังและฟอนต์ --- */
         body {
-            background-color: #050914; /* สีพื้นหลังโทนเข้ม */
+            background-color: #0d1117; /* ปรับสีพื้นหลังให้มืดสนิทสไตล์โมเดิร์น */
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
@@ -21,63 +21,74 @@
 
         /* --- การตกแต่งกล่องควบคุมหลัก (Control Panel) --- */
         .panel {
-            background: linear-gradient(145deg, #111827, #1f2937);
-            border-radius: 20px;
-            padding: 30px;
-            width: 320px;
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
-            border: 1px solid #1f2937;
+            background: linear-gradient(145deg, #161b22, #0d1117);
+            border-radius: 24px;
+            padding: 35px 30px;
+            width: 340px;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.15);
+            border: 1px solid rgba(0, 243, 255, 0.1);
         }
 
-        /* --- ส่วนหัวเรื่อง --- */
+        /* --- ส่วนหัวเรื่องตามภาพ ขาาาาา.jpg --- */
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
         .header h1 {
             color: #00f3ff;
             margin: 0;
-            font-size: 24px;
+            font-size: 28px;
             text-transform: uppercase;
             letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.6);
         }
         .header p {
-            color: #9ca3af;
-            font-size: 12px;
-            margin-top: 5px;
+            color: #8b949e;
+            font-size: 13px;
+            margin-top: 8px;
+            letter-spacing: 1px;
         }
 
         /* --- การตกแต่งแต่ละช่อง (Channel Row) --- */
         .channel-row {
-            background-color: #1a2235;
-            border-radius: 12px;
-            padding: 15px 20px;
-            margin-bottom: 15px;
+            background-color: #21262d;
+            border-radius: 16px;
+            padding: 18px 22px;
+            margin-bottom: 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
         }
+        
+        /* เพิ่มเอฟเฟกต์เรืองแสงเมื่อช่องนั้นเปิดใช้งาน */
+        .channel-row.active {
+            border-color: rgba(0, 243, 255, 0.3);
+            box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.05);
+        }
+
         .channel-info {
             display: flex;
             align-items: center;
-            gap: 15px;
-            font-size: 14px;
-            font-weight: bold;
+            gap: 18px;
+            font-size: 15px;
+            font-weight: 500;
         }
         .channel-info i {
-            color: #9ca3af; /* สีไอคอนเริ่มต้น */
-            font-size: 18px;
-            width: 20px;
+            color: #8b949e; 
+            font-size: 20px;
+            width: 24px;
             text-align: center;
+            transition: all 0.3s ease;
         }
 
-        /* --- การตกแต่งสวิตช์ Toggle --- */
+        /* --- การตกแต่งสวิตช์ Toggle และแสงนีออนสีฟ้าตามภาพ ขาาาาา.jpg --- */
         .switch {
             position: relative;
             display: inline-block;
-            width: 50px;
-            height: 24px;
+            width: 55px;
+            height: 28px;
         }
         .switch input {
             opacity: 0;
@@ -88,37 +99,42 @@
             position: absolute;
             cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #374151;
-            transition: .4s;
+            background-color: #30363d;
+            transition: .3s ease;
             border-radius: 34px;
         }
         .slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
+            height: 22px;
+            width: 22px;
             left: 3px;
             bottom: 3px;
-            background-color: white;
-            transition: .4s;
+            background-color: #ffffff;
+            transition: .3s ease;
             border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
         }
-        /* เมื่อสวิตช์เปิด (ON) */
+        
+        /* สถานะ ON */
         input:checked + .slider {
             background-color: #00f3ff;
-            box-shadow: 0 0 15px #00f3ff; /* แสงนีออน */
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.6); 
         }
         input:checked + .slider:before {
-            transform: translateX(26px);
+            transform: translateX(27px);
         }
 
         /* --- ส่วนเครดิตผู้จัดทำ --- */
         .footer {
             text-align: center;
-            margin-top: 30px;
-            font-size: 10px;
+            margin-top: 35px;
+            font-size: 11px;
             color: #00f3ff;
-            line-height: 1.6;
+            line-height: 1.7;
+            opacity: 0.8;
+            border-top: 1px solid rgba(0, 243, 255, 0.1);
+            padding-top: 20px;
         }
     </style>
 </head>
@@ -126,12 +142,12 @@
 
     <div class="panel">
         <div class="header">
-            <h1>Smart Home</h1>
+            <h1>SMART HOME</h1>
             <p>ESP8266 IoT Control Panel</p>
         </div>
 
-        <!-- ช่องที่ 1 (D1) -->
-        <div class="channel-row">
+        <!-- ช่องที่ 1 (D1) - LIGHT 1 -->
+        <div class="channel-row" id="row-D1">
             <div class="channel-info">
                 <i class="fa-solid fa-lightbulb" id="icon-D1"></i>
                 <span>ช่องที่ 1 (D1)</span>
@@ -142,10 +158,10 @@
             </label>
         </div>
 
-        <!-- ช่องที่ 2 (D2) -->
-        <div class="channel-row">
+        <!-- ช่องที่ 2 (D2) - FAN -->
+        <div class="channel-row" id="row-D2">
             <div class="channel-info">
-                <i class="fa-solid fa-plug" id="icon-D2"></i>
+                <i class="fa-solid fa-fan" id="icon-D2"></i>
                 <span>ช่องที่ 2 (D2)</span>
             </div>
             <label class="switch">
@@ -154,8 +170,8 @@
             </label>
         </div>
 
-        <!-- ช่องที่ 3 (D5) -->
-        <div class="channel-row">
+        <!-- ช่องที่ 3 (D5) - TV -->
+        <div class="channel-row" id="row-D5">
             <div class="channel-info">
                 <i class="fa-solid fa-tv" id="icon-D5"></i>
                 <span>ช่องที่ 3 (D5)</span>
@@ -166,10 +182,10 @@
             </label>
         </div>
 
-        <!-- ช่องที่ 4 (D6) -->
-        <div class="channel-row">
+        <!-- ช่องที่ 4 (D6) - PLUG -->
+        <div class="channel-row" id="row-D6">
             <div class="channel-info">
-                <i class="fa-regular fa-snowflake" id="icon-D6"></i>
+                <i class="fa-solid fa-plug" id="icon-D6"></i>
                 <span>ช่องที่ 4 (D6)</span>
             </div>
             <label class="switch">
@@ -186,13 +202,12 @@
         </div>
     </div>
 
-    <!-- นำเข้าไลบรารี Firebase แบบ Compat (ใช้งานง่ายกับ HTML ธรรมดา) -->
+    <!-- เรียกใช้ไลบรารี Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // 1. นำการตั้งค่า Firebase ของคุณมาใส่ตรงนี้
-        // (หาได้จาก Firebase Console -> Project Settings -> General -> Your apps)
+        // 1. วาง Firebase Configuration ของคุณที่นี่
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -203,48 +218,54 @@
             appId: "YOUR_APP_ID"
         };
 
-        // 2. เริ่มต้นใช้งาน Firebase
+        // เริ่มต้นระบบ Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 3. ฟังก์ชันสำหรับอัปเดตสถานะขึ้น Firebase เมื่อผู้ใช้กดสวิตช์
+        // 2. ฟังก์ชันส่งค่าสถานะไปยัง Firebase (ส่งเป็น 1 หรือ 0 เพื่อไม่ให้บอร์ดไมโครคอนโทรลเลอร์สับสน)
         function toggleDevice(pin) {
             const isChecked = document.getElementById(`switch-${pin}`).checked;
+            const valueToSend = isChecked ? 1 : 0; // ส่ง 1=เปิด, 0=ปิด เพื่อให้ตรงกับสถานะบอร์ดไอโอที
             
-            // ส่งค่าไปยัง Firebase ภายใต้โหนดชื่อ 'SmartHome'
-            database.ref('SmartHome/' + pin).set(isChecked)
+            database.ref('SmartHome/' + pin).set(valueToSend)
             .then(() => {
-                console.log(`${pin} ถูกตั้งค่าเป็น ${isChecked}`);
+                console.log(`ส่งข้อมูลสำเร็จ: ${pin} -> ${valueToSend}`);
             })
             .catch((error) => {
-                console.error("เกิดข้อผิดพลาด: ", error);
+                console.error("Firebase เขียนข้อมูลล้มเหลว: ", error);
             });
         }
 
-        // 4. ฟังก์ชันสำหรับรับสถานะจาก Firebase แบบ Real-time มาแสดงบนหน้าเว็บ
-        // (กรณีมีการเปิด/ปิดจากที่อื่น เช่น จากบอร์ด NodeMCU หรือเว็บเครื่องอื่น)
+        // 3. ฟังก์ชันดักจับข้อมูลแบบ Real-time และแปลงค่าข้อมูลให้ปลอดภัย (ป้องกันบั๊กสวิตช์ค้าง)
         function listenToDevice(pin) {
             database.ref('SmartHome/' + pin).on('value', (snapshot) => {
                 const status = snapshot.val();
                 
-                // อัปเดตสถานะสวิตช์บนหน้าเว็บ
                 if (status !== null) {
-                    document.getElementById(`switch-${pin}`).checked = status;
+                    // ตรวจสอบเงื่อนไขอย่างละเอียด ป้องกันการตีความข้อมูล String หรือ Integer ผิดพลาด
+                    const isOn = (status === true || status === 1 || status === "1" || status === "true");
                     
-                    // เปลี่ยนสีไอคอนให้สว่างขึ้นเมื่อเปิด
+                    // ปรับสถานะปุ่ม Toggle บนหน้าจอ
+                    document.getElementById(`switch-${pin}`).checked = isOn;
+                    
+                    // ปรับเปลี่ยนสีและแสงเอฟเฟกต์ตามสถานะจริง
                     const icon = document.getElementById(`icon-${pin}`);
-                    if (status) {
+                    const row = document.getElementById(`row-${pin}`);
+                    
+                    if (isOn) {
                         icon.style.color = "#00f3ff";
                         icon.style.textShadow = "0 0 10px #00f3ff";
+                        row.classList.add('active');
                     } else {
-                        icon.style.color = "#9ca3af";
+                        icon.style.color = "#8b949e";
                         icon.style.textShadow = "none";
+                        row.classList.remove('active');
                     }
                 }
             });
         }
 
-        // เริ่มต้นดักจับข้อมูลจาก Firebase สำหรับทั้ง 4 ช่อง
+        // เริ่มต้นการซิงค์ข้อมูลแบบ Real-time ทั้ง 4 ช่องสัญญาณ
         listenToDevice('D1');
         listenToDevice('D2');
         listenToDevice('D5');
