@@ -1,275 +1,113 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Home IoT Control Panel</title>
-    <!-- นำเข้า Font Awesome สำหรับใช้ไอคอนต่างๆ -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* --- การตกแต่งพื้นหลังและฟอนต์ --- */
-        body {
-            background-color: #0d1117; /* ปรับสีพื้นหลังให้มืดสนิทสไตล์โมเดิร์น */
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
+#include <Arduino.h>
+#include <ESP8266WiFi.h>
+#include <Firebase_ESP_Client.h>
 
-        /* --- การตกแต่งกล่องควบคุมหลัก (Control Panel) --- */
-        .panel {
-            background: linear-gradient(145deg, #161b22, #0d1117);
-            border-radius: 24px;
-            padding: 35px 30px;
-            width: 340px;
-            box-shadow: 0 0 30px rgba(0, 243, 255, 0.15);
-            border: 1px solid rgba(0, 243, 255, 0.1);
-        }
+// นำเข้าโมดูลช่วยเหลือของ Firebase สำหรับจัดการ Token และ RTDB
+#include "addons/TokenHelper.h"
+#include "addons/RTDBHelper.h"
 
-        /* --- ส่วนหัวเรื่องตามภาพ ขาาาาา.jpg --- */
-        .header {
-            text-align: center;
-            margin-bottom: 35px;
-        }
-        .header h1 {
-            color: #00f3ff;
-            margin: 0;
-            font-size: 28px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 15px rgba(0, 243, 255, 0.6);
-        }
-        .header p {
-            color: #8b949e;
-            font-size: 13px;
-            margin-top: 8px;
-            letter-spacing: 1px;
-        }
+// ==========================================
+// 1. ตั้งค่า Wi-Fi (ระบุข้อมูลของคุณตรงนี้)
+// ==========================================
+#define WIFI_SSID "Porn"
+#define WIFI_PASSWORD "1234567899"
 
-        /* --- การตกแต่งแต่ละช่อง (Channel Row) --- */
-        .channel-row {
-            background-color: #21262d;
-            border-radius: 16px;
-            padding: 18px 22px;
-            margin-bottom: 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
-        }
-        
-        /* เพิ่มเอฟเฟกต์เรืองแสงเมื่อช่องนั้นเปิดใช้งาน */
-        .channel-row.active {
-            border-color: rgba(0, 243, 255, 0.3);
-            box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.05);
-        }
+// ==========================================
+// 2. ข้อมูล Firebase จากโปรเจกต์ของคุณ (ใส่ให้เรียบร้อยแล้ว)
+// ==========================================
+#define API_KEY "AIzaSyCTGTfRQAqBdUzxN13YME0Zig_ifCZZuFs"
+#define DATABASE_URL "https://yout2026-default-rtdb.asia-southeast1.firebasedatabase.app"
 
-        .channel-info {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            font-size: 15px;
-            font-weight: 500;
-        }
-        .channel-info i {
-            color: #8b949e; 
-            font-size: 20px;
-            width: 24px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
+// ประกาศออบเจ็กต์สำหรับ Firebase
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
 
-        /* --- การตกแต่งสวิตช์ Toggle และแสงนีออนสีฟ้าตามภาพ ขาาาาา.jpg --- */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 55px;
-            height: 28px;
-        }
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #30363d;
-            transition: .3s ease;
-            border-radius: 34px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 22px;
-            width: 22px;
-            left: 3px;
-            bottom: 3px;
-            background-color: #ffffff;
-            transition: .3s ease;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-        }
-        
-        /* สถานะ ON */
-        input:checked + .slider {
-            background-color: #00f3ff;
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.6); 
-        }
-        input:checked + .slider:before {
-            transform: translateX(27px);
-        }
+void setup() {
+  // เปิด Serial Monitor ที่ Baud Rate 115200
+  Serial.begin(115200);
+  delay(1000);
+  
+  Serial.println("\n\n========================================");
+  Serial.println("  IoT Smart Home - SYSTEM DIAGNOSTIC   ");
+  Serial.println("========================================");
 
-        /* --- ส่วนเครดิตผู้จัดทำ --- */
-        .footer {
-            text-align: center;
-            margin-top: 35px;
-            font-size: 11px;
-            color: #00f3ff;
-            line-height: 1.7;
-            opacity: 0.8;
-            border-top: 1px solid rgba(0, 243, 255, 0.1);
-            padding-top: 20px;
-        }
-    </style>
-</head>
-<body>
+  // ----------------------------------------
+  // ข้อที่ 1: ตรวจสอบระบบ Wi-Fi
+  // ----------------------------------------
+  Serial.print("[Wi-Fi] กำลังเชื่อมต่อกับ: ");
+  Serial.println(WIFI_SSID);
+  
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("\n[Wi-Fi] เชื่อมต่อสำเร็จ!");
+  Serial.print("[Wi-Fi] IP Address ที่ได้รับ: ");
+  Serial.println(WiFi.localIP());
+  Serial.println("----------------------------------------");
 
-    <div class="panel">
-        <div class="header">
-            <h1>SMART HOME</h1>
-            <p>ESP8266 IoT Control Panel</p>
-        </div>
+  // ----------------------------------------
+  // ระบบซิงค์เวลา NTP (จำเป็นมากสำหรับ SSL ของ Firebase)
+  // ----------------------------------------
+  Serial.print("[NTP] กำลังซิงค์เวลาสากลผ่านอินเทอร์เน็ต");
+  configTime(7 * 3600, 0, "pool.ntp.org", "time.nist.gov"); // เวลาประเทศไทย UTC+7
+  while (time(nullptr) < 100000) {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println("\n[NTP] ซิงค์เวลาสำเร็จ!");
+  Serial.println("----------------------------------------");
 
-        <!-- ช่องที่ 1 (D1) - LIGHT 1 -->
-        <div class="channel-row" id="row-D1">
-            <div class="channel-info">
-                <i class="fa-solid fa-lightbulb" id="icon-D1"></i>
-                <span>ช่องที่ 1 (D1)</span>
-            </div>
-            <label class="switch">
-                <input type="checkbox" id="switch-D1" onchange="toggleDevice('D1')">
-                <span class="slider"></span>
-            </label>
-        </div>
+  // ----------------------------------------
+  // ข้อที่ 2: เริ่มต้นระบบ Firebase
+  // ----------------------------------------
+  Serial.println("[Firebase] กำลังตั้งค่าการเชื่อมต่อ...");
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
 
-        <!-- ช่องที่ 2 (D2) - FAN -->
-        <div class="channel-row" id="row-D2">
-            <div class="channel-info">
-                <i class="fa-solid fa-fan" id="icon-D2"></i>
-                <span>ช่องที่ 2 (D2)</span>
-            </div>
-            <label class="switch">
-                <input type="checkbox" id="switch-D2" onchange="toggleDevice('D2')">
-                <span class="slider"></span>
-            </label>
-        </div>
+  // เชื่อมต่อแบบไม่ระบุตัวตน (Anonymous Sign-In)
+  if (Firebase.signUp(&config, &auth, "", "")) {
+    Serial.println("[Firebase] ยืนยันตัวตน (Authentication) สำเร็จ!");
+  } else {
+    Serial.printf("[Firebase] ยืนยันตัวตนล้มเหลว: %s\n", config.signer.signupError.message.c_str());
+  }
 
-        <!-- ช่องที่ 3 (D5) - TV -->
-        <div class="channel-row" id="row-D5">
-            <div class="channel-info">
-                <i class="fa-solid fa-tv" id="icon-D5"></i>
-                <span>ช่องที่ 3 (D5)</span>
-            </div>
-            <label class="switch">
-                <input type="checkbox" id="switch-D5" onchange="toggleDevice('D5')">
-                <span class="slider"></span>
-            </label>
-        </div>
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+  Serial.println("========================================\n");
+}
 
-        <!-- ช่องที่ 4 (D6) - PLUG -->
-        <div class="channel-row" id="row-D6">
-            <div class="channel-info">
-                <i class="fa-solid fa-plug" id="icon-D6"></i>
-                <span>ช่องที่ 4 (D6)</span>
-            </div>
-            <label class="switch">
-                <input type="checkbox" id="switch-D6" onchange="toggleDevice('D6')">
-                <span class="slider"></span>
-            </label>
-        </div>
+void loop() {
+  // ตรวจสอบว่าบอร์ดพร้อม และ Firebase เชื่อมต่อได้หรือไม่
+  if (Firebase.ready()) {
+    
+    // กำหนดพิกัดที่ต้องการตรวจสอบ (ในที่นี้เริ่มจากพิกัดราก "/" เพื่อดูโครงสร้างทั้งหมด)
+    String targetPath = "/"; 
+    
+    Serial.print("[Firebase] กำลังทดสอบอ่านข้อมูลจากพิกัด: ");
+    Serial.println(targetPath);
 
-        <div class="footer">
-            ผู้พัฒนาระบบ<br>
-            ครูวิทยากร วรรณา<br>
-            แผนกอิเล็กทรอนิกส์<br>
-            วิทยาลัยสารพัดช่างศรีสะเกษ
-        </div>
-    </div>
+    // ทดลองดึงข้อมูลในรูปแบบ JSON มาแสดงผล
+    if (Firebase.RTDB.getJSON(&fbdo, targetPath)) {
+      Serial.println("[Firebase] ดึงค่าสำเร็จ! ข้อมูลในพิกัดนี้คือ:");
+      // แสดงโครงสร้างข้อมูลทั้งหมดที่ดึงมาได้
+      Serial.println(fbdo.jsonString()); 
+    } else {
+      // หากดึงไม่สำเร็จ จะพิมพ์แจ้งสาเหตุความล้มเหลวออกมา
+      Serial.print("[Firebase] ดึงข้อมูลล้มเหลว! สาเหตุ: ");
+      Serial.println(fbdo.errorReason());
+    }
 
-    <!-- เรียกใช้ไลบรารี Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    Serial.println("----------------------------------------");
+  } else {
+    Serial.println("[System] บอร์ดยังไม่พร้อม หรืออยู่ระหว่างการเชื่อมต่อ Firebase...");
+  }
 
-    <script>
-        // 1. วาง Firebase Configuration ของคุณที่นี่
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        // เริ่มต้นระบบ Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // 2. ฟังก์ชันส่งค่าสถานะไปยัง Firebase (ส่งเป็น 1 หรือ 0 เพื่อไม่ให้บอร์ดไมโครคอนโทรลเลอร์สับสน)
-        function toggleDevice(pin) {
-            const isChecked = document.getElementById(`switch-${pin}`).checked;
-            const valueToSend = isChecked ? 1 : 0; // ส่ง 1=เปิด, 0=ปิด เพื่อให้ตรงกับสถานะบอร์ดไอโอที
-            
-            database.ref('SmartHome/' + pin).set(valueToSend)
-            .then(() => {
-                console.log(`ส่งข้อมูลสำเร็จ: ${pin} -> ${valueToSend}`);
-            })
-            .catch((error) => {
-                console.error("Firebase เขียนข้อมูลล้มเหลว: ", error);
-            });
-        }
-
-        // 3. ฟังก์ชันดักจับข้อมูลแบบ Real-time และแปลงค่าข้อมูลให้ปลอดภัย (ป้องกันบั๊กสวิตช์ค้าง)
-        function listenToDevice(pin) {
-            database.ref('SmartHome/' + pin).on('value', (snapshot) => {
-                const status = snapshot.val();
-                
-                if (status !== null) {
-                    // ตรวจสอบเงื่อนไขอย่างละเอียด ป้องกันการตีความข้อมูล String หรือ Integer ผิดพลาด
-                    const isOn = (status === true || status === 1 || status === "1" || status === "true");
-                    
-                    // ปรับสถานะปุ่ม Toggle บนหน้าจอ
-                    document.getElementById(`switch-${pin}`).checked = isOn;
-                    
-                    // ปรับเปลี่ยนสีและแสงเอฟเฟกต์ตามสถานะจริง
-                    const icon = document.getElementById(`icon-${pin}`);
-                    const row = document.getElementById(`row-${pin}`);
-                    
-                    if (isOn) {
-                        icon.style.color = "#00f3ff";
-                        icon.style.textShadow = "0 0 10px #00f3ff";
-                        row.classList.add('active');
-                    } else {
-                        icon.style.color = "#8b949e";
-                        icon.style.textShadow = "none";
-                        row.classList.remove('active');
-                    }
-                }
-            });
-        }
-
-        // เริ่มต้นการซิงค์ข้อมูลแบบ Real-time ทั้ง 4 ช่องสัญญาณ
-        listenToDevice('D1');
-        listenToDevice('D2');
-        listenToDevice('D5');
-        listenToDevice('D6');
-    </script>
-</body>
-</html>
+  // หน่วงเวลาตรวจสอบทุกๆ 5 วินาที เพื่อไม่ให้ Serial Monitor ทำงานเร็วเกินไป
+  delay(5000);
+}
+yout2026-default-rtdb.asia-southeast1.firebasedatabase.app
+yout2026-default-rtdb.asia-southeast1.firebasedatabase.app
